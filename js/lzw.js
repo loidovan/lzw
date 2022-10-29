@@ -40,7 +40,10 @@ function lzw_encode() {
 
   console.log(result);
   document.getElementById("modal-content-result").innerHTML =
-    "Kết quả của mã hóa chuỗi「 " + uncompressed + " 」là:<br>" + result.join(" ");
+    "Kết quả của mã hóa chuỗi「 " +
+    uncompressed +
+    " 」là:<br>" +
+    result.join(" ");
   modal.style.display = "block";
   return result;
 }
@@ -50,6 +53,15 @@ function lzw_decode() {
   var compressed = document.getElementById("data").value;
   if (compressed.includes(" ")) {
     compressed = compressed.split(" ");
+  } else {
+    compressed = [compressed.toString()];
+  }
+
+  var typeData = document.getElementById("type-data").value;
+  if (typeData === "binary") {
+    compressed = compressed.map((item) => {
+      return parseInt(item, 2);
+    });
   }
 
   // Initialize Dictionary (inverse of compress)
@@ -88,6 +100,12 @@ function lzw_decode() {
     result = "";
   }
 
+  if (typeData === "decimal") {
+    // check data input is binary
+    if (compressed[0].toString().length > 3) {
+      result = "";
+    }
+  }
   if (!validateDecode(result)) return;
 
   console.log(result);
