@@ -35,3 +35,17 @@ function isBinary(str) {
   }
   console.log({isBinary})
 }
+
+function inputInvalid(array) {
+  if (Math.max(...array) > 4095) {
+    document.getElementById("modal-content-result").innerHTML =
+      "Chuỗi đã nhập quá dài!";
+    document.querySelector(".modal-content").style.border = "4px solid #ff3c3c";
+    modal.style.display = "block";
+    console.log(array);
+    return false;
+  } else {
+    document.querySelector(".modal-content").style.border = "4px solid #14cd14";
+  }
+  return true;
+}

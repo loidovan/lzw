@@ -3,13 +3,13 @@ function lzw_encode() {
   if (!validateEncode()) return;
   var uncompressed = document.getElementById("data").value;
   let dictionary = {};
-  for (let i = 0; i < 256; i++) {
+  for (let i = 0; i < 258; i++) {
     dictionary[String.fromCharCode(i)] = i;
   }
 
   let word = "";
   let result = [];
-  let dictSize = 256;
+  let dictSize = 258;
 
   for (let i = 0, len = uncompressed.length; i < len; i++) {
     let curChar = uncompressed[i];
@@ -31,6 +31,11 @@ function lzw_encode() {
     result.push(dictionary[word]);
   }
 
+  // validate bigger than 4095
+  if (!inputInvalid(result)) {
+    return;
+  }
+
   var typeData = document.getElementById("type-data").value;
   if (typeData === "binary") {
     result = result.map((item) => {
@@ -43,7 +48,28 @@ function lzw_encode() {
     "Kết quả của mã hóa chuỗi「 " +
     uncompressed +
     " 」là:<br>" +
-    result.join(" ");
+    result.join(" ") +
+    "<br>Tỉ lệ nén: " +
+    getRatio(
+      uncompressed.length,
+      typeData === "binary"
+        ? result.map((item) => {
+            return parseInt(item, 2);
+          })
+        : result
+    ) +
+    "<br>Độ dư thừa: " +
+    getRedundancy(
+      getRatio(
+        uncompressed.length,
+        typeData === "binary"
+          ? result.map((item) => {
+              return parseInt(item, 2);
+            })
+          : result
+      )
+    ) +
+    " %";
   modal.style.display = "block";
   return result;
 }
@@ -64,16 +90,21 @@ function lzw_decode() {
     });
   }
 
+  // validate bigger than 4095
+  if (!inputInvalid(compressed)) {
+    return;
+  }
+
   // Initialize Dictionary (inverse of compress)
   let dictionary = {};
-  for (let i = 0; i < 256; i++) {
+  for (let i = 0; i < 258; i++) {
     dictionary[i] = String.fromCharCode(i);
   }
 
   let word = String.fromCharCode(compressed[0]);
   let result = word;
   let entry = "";
-  let dictSize = 256;
+  let dictSize = 258;
 
   try {
     for (let i = 1, len = compressed.length; i < len; i++) {
@@ -113,4 +144,35 @@ function lzw_decode() {
     "Kết quả của giải mã chuỗi「" + compressed.join(" ") + "」là:<br>" + result;
   modal.style.display = "block";
   return result;
+}
+
+function getBit(number) {
+  if (number <= 4095) {
+    if (number >= 2048) {
+      return 12;
+    }
+    if (number >= 1023) {
+      return 11;
+    }
+    if (number >= 512) {
+      return 10;
+    }
+    if (number >= 258) {
+      return 9;
+    }
+  }
+  return 8;
+}
+
+function getRatio(inputLength, arrayResult) {
+  let bitInput = inputLength * 8;
+  let bitResult = 0;
+  arrayResult.map((item) => {
+    bitResult += getBit(item);
+  });
+  return bitInput / bitResult;
+}
+
+function getRedundancy(ratio) {
+  return (1 - 1 / ratio) * 100;
 }
