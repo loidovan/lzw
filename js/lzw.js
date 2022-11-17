@@ -2,6 +2,7 @@
 function lzw_encode() {
   if (!validateEncode()) return;
   var uncompressed = document.getElementById("data").value;
+  uncompressed = uncompressed.replace(/\s/g, "");
   let dictionary = {};
   for (let i = 0; i < 258; i++) {
     dictionary[String.fromCharCode(i)] = i;
@@ -105,6 +106,7 @@ function lzw_decode() {
   let result = word;
   let entry = "";
   let dictSize = 258;
+  let arrayOutput = [];
 
   try {
     for (let i = 1, len = compressed.length; i < len; i++) {
@@ -120,7 +122,8 @@ function lzw_decode() {
         }
       }
 
-      result += entry;
+      arrayOutput.push(curNumber);
+      result += " " + entry;
 
       // Add word + entry[0] to dictionary
       dictionary[dictSize++] = word + entry[0];
@@ -141,7 +144,15 @@ function lzw_decode() {
 
   console.log(result);
   document.getElementById("modal-content-result").innerHTML =
-    "Kết quả của giải mã chuỗi「" + compressed.join(" ") + "」là:<br>" + result;
+    "Kết quả của giải mã chuỗi「" +
+    compressed.join(" ") +
+    "」là:<br>" +
+    result +
+    "<br>Tỉ lệ nén: " +
+    getRatio(result.replace(/\s/g, "").length, result, true) +
+    "<br>Độ dư thừa: " +
+    getRedundancy(getRatio(result.replace(/\s/g, "").length, result, true)) +
+    " %";
   modal.style.display = "block";
   return result;
 }
@@ -164,13 +175,43 @@ function getBit(number) {
   return 8;
 }
 
-function getRatio(inputLength, arrayResult) {
-  let bitInput = inputLength * 8;
-  let bitResult = 0;
-  arrayResult.map((item) => {
-    bitResult += getBit(item);
-  });
-  return bitInput / bitResult;
+function getRatio(inputLength, arrayResult, isDecode = false) {
+  if (!isDecode) {
+    let bitInput = inputLength * 8;
+    let bitResult = 0;
+    arrayResult.map((item) => {
+      bitResult += getBit(item);
+    });
+    return bitInput / bitResult;
+  } else {
+    var uncompressed = arrayResult.replace(/\s/g, "");
+    let dictionary = {};
+    for (let i = 0; i < 258; i++) {
+      dictionary[String.fromCharCode(i)] = i;
+    }
+
+    let word = "";
+    let result = [];
+    let dictSize = 258;
+
+    for (let i = 0, len = uncompressed.length; i < len; i++) {
+      let curChar = uncompressed[i];
+      let joinedWord = word + curChar;
+      if (dictionary.hasOwnProperty(joinedWord)) {
+        word = joinedWord;
+      } else {
+        result.push(dictionary[word]);
+        // Add wc to the dictionary.
+        dictionary[joinedWord] = dictSize++;
+        word = curChar;
+      }
+    }
+
+    if (word !== "") {
+      result.push(dictionary[word]);
+    }
+    return getRatio(uncompressed.length, result);
+  }
 }
 
 function getRedundancy(ratio) {
