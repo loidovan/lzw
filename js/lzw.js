@@ -11,25 +11,57 @@ function lzw_encode() {
   let word = "";
   let result = [];
   let dictSize = 258;
-
+  let tableResult = [];
   for (let i = 0, len = uncompressed.length; i < len; i++) {
     let curChar = uncompressed[i];
     let joinedWord = word + curChar;
+    let preWord = word;
 
     // Do not use dictionary[joinedWord] because javascript objects
     // will return values for myObject['toString']
     if (dictionary.hasOwnProperty(joinedWord)) {
       word = joinedWord;
+
+      if (preWord) {
+        tableResult.push({
+          input: curChar,
+          previousChar: preWord,
+          joinedWord: joinedWord,
+          code: "",
+          output: "",
+        });
+      } else {
+        tableResult.push({
+          input: curChar,
+          previousChar: preWord,
+          joinedWord: joinedWord,
+          code: dictionary[joinedWord],
+          output: "",
+        });
+      }
     } else {
       result.push(dictionary[word]);
       // Add wc to the dictionary.
       dictionary[joinedWord] = dictSize++;
       word = curChar;
+      tableResult.push({
+        input: curChar,
+        previousChar: preWord,
+        joinedWord: joinedWord,
+        code: dictionary[joinedWord],
+        output: dictionary[preWord],
+      });
     }
   }
-
   if (word !== "") {
     result.push(dictionary[word]);
+    tableResult.push({
+      input: "EOI",
+      previousChar: word,
+      joinedWord: `${word}+EOI`,
+      code: "",
+      output: dictionary[word],
+    });
   }
 
   // validate bigger than 4095
@@ -44,7 +76,22 @@ function lzw_encode() {
     });
   }
 
-  console.log(result);
+  console.log({ tableResult });
+  console.log({ result });
+  document.getElementById("table-body").innerHTML = "";
+  var table = document.getElementById("table-body");
+  tableResult.forEach((obj) => {
+    var tds = "";
+    tds = `<td class='column-in'>${obj.input}</td>
+    <td class='column-pre'>${obj.previousChar}</td>
+    <td class='column_preAndIn'>${obj.joinedWord}</td>
+    <td class='column_code'>${obj.code}</td>
+    <td class='column_out'>${obj.output}</td>
+  `;
+    var objTr = `<tr>${tds}</tr>`;
+    table.innerHTML += objTr;
+  });
+
   document.getElementById("modal-content-result").innerHTML =
     "Kết quả của mã hóa chuỗi「 " +
     uncompressed +
@@ -107,6 +154,15 @@ function lzw_decode() {
   let entry = "";
   let dictSize = 258;
   let arrayOutput = [];
+  let tableResult = [
+    {
+      input: word,
+      previousChar: "",
+      joinedWord: word,
+      code: compressed[0],
+      output: "",
+    },
+  ];
 
   try {
     for (let i = 1, len = compressed.length; i < len; i++) {
@@ -127,9 +183,31 @@ function lzw_decode() {
 
       // Add word + entry[0] to dictionary
       dictionary[dictSize++] = word + entry[0];
-
+      tableResult.push({
+        input: entry[0],
+        previousChar: word,
+        joinedWord: word + entry[0],
+        code: dictSize - 1,
+        output: word,
+      });
+      if (Object.values(dictionary).includes(entry) && entry.length > 1) {
+        tableResult.push({
+          input: word,
+          previousChar: entry[0],
+          joinedWord: entry,
+          code: "",
+          output: "",
+        });
+      }
       word = entry;
     }
+    tableResult.push({
+      input: "EOI",
+      previousChar: word,
+      joinedWord: `${word}+EOI`,
+      code: "",
+      output: word,
+    });
   } catch (error) {
     result = "";
   }
@@ -142,7 +220,22 @@ function lzw_decode() {
   }
   if (!validateDecode(result)) return;
 
-  console.log(result);
+  console.log({ tableResult });
+  console.log({ result });
+  document.getElementById("table-body").innerHTML = "";
+  var table = document.getElementById("table-body");
+  tableResult.forEach((obj) => {
+    var tds = "";
+    tds = `<td class='column-in'>${obj.input}</td>
+    <td class='column-pre'>${obj.previousChar}</td>
+    <td class='column_preAndIn'>${obj.joinedWord}</td>
+    <td class='column_code'>${obj.code}</td>
+    <td class='column_out'>${obj.output}</td>
+  `;
+    var objTr = `<tr>${tds}</tr>`;
+    table.innerHTML += objTr;
+  });
+
   document.getElementById("modal-content-result").innerHTML =
     "Kết quả của giải mã chuỗi「" +
     compressed.join(" ") +
